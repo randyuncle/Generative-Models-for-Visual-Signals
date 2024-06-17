@@ -41,7 +41,7 @@ def get_image_grid(images_np, nrow=8):
     
     return torch_grid.numpy()
 
-def plot_image_grid(images_np, nrow =8, factor=1, interpolation='lanczos'):
+def plot_image_grid(images_np, nrow=8, factor=1, interpolation='lanczos'):
     """Draws images in a grid
     
     Args:
@@ -136,12 +136,12 @@ def get_noise(input_depth, method, spatial_size, noise_type='u', var=1./10):
         net_input = torch.zeros(shape)
         
         fill_noise(net_input, noise_type)
-        net_input *= var            
+        net_input *= var
     elif method == 'meshgrid': 
         assert input_depth == 2
-        X, Y = np.meshgrid(np.arange(0, spatial_size[1])/float(spatial_size[1]-1), np.arange(0, spatial_size[0])/float(spatial_size[0]-1))
+        X, Y = np.meshgrid(np.arange(0, spatial_size[1]) / float(spatial_size[1] - 1), np.arange(0, spatial_size[0]) / float(spatial_size[0] - 1))
         meshgrid = np.concatenate([X[None,:], Y[None,:]])
-        net_input=  np_to_torch(meshgrid)
+        net_input = np_to_torch(meshgrid)
     else:
         assert False
         

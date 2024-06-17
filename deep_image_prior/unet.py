@@ -32,13 +32,13 @@ def conv(in_f, out_f, kernel_size, stride=1, bias=True, pad='zero', downsample_m
 ###
 
 class DownSample(nn.Module):
-    def __init__(self, in_size, out_size, kernel, pad, desample_mode):
+    def __init__(self, in_size, out_size, kernel, pad, downsample_mode):
         super(DownSample, self).__init__()
 
         self.act = nn.LeakyReLU(0.2, inplace=True)
         self.batch_norm = nn.BatchNorm2d(out_size)
-        self.cnn1 = conv(in_size, out_size, kernel, 1, True, pad, desample_mode)
-        self.cnn2 = conv(out_size, out_size, kernel, 1, True, pad, desample_mode)
+        self.cnn1 = conv(in_size, out_size, kernel, 1, True, pad, downsample_mode)
+        self.cnn2 = conv(out_size, out_size, kernel, 1, True, pad, downsample_mode)
     
     def forward(self, input):
         output = self.cnn1(input)
@@ -54,8 +54,6 @@ class DownSample(nn.Module):
 class UpSample(nn.Module):
     def __init__(self, in_size, out_size, kernel, pad, upsample_mode):
         super(UpSample, self).__init__()
-        # self.conv = UnetConv2(in_size, out_size, norm_layer, need_bias, pad)
-        # self.down = nn.MaxPool2d(2, 2)
         
         self.act = nn.LeakyReLU(0.2, inplace=True)
         self.batch_norm = nn.BatchNorm2d(out_size)
@@ -81,8 +79,8 @@ class UpSample(nn.Module):
 
 class SkipConnection(nn.Module):
     def __init__(self, in_size, out_size, kernel, pad):
-        
         super(SkipConnection, self).__init__()
+        
         self.act = nn.LeakyReLU(0.2, inplace=True)
         self.batch_norm = nn.BatchNorm2d(out_size)
         self.cnn = conv(in_size, out_size, kernel, 1, True, pad)
@@ -105,25 +103,27 @@ class SkipArchitecture(nn.Module):
         assert len(num_channels_down) == len(num_channels_up) == len(num_channels_skip)
         self.n_scales = len(num_channels_down)
         
-        self.down_sampler = nn.ModuleList([DownSample(in_size=num_input_channels if i == 0 
-                                                              else num_channels_down[i-1], 
-                                                      out_size=num_channels_down[i], 
-                                                      kernel=filter_size_down,
-                                                      pad=pad, 
-                                                      desample_mode=downsample_mode) 
-                                           for i in range(len(num_channels_down))])
-        self.up_sampler = nn.ModuleList([UpSample(in_size=num_channels_skip[i] + num_channels_up[i + 1] if i != len(num_channels_down) - 1
-                                                                    else num_channels_up[i],
-                                                  out_size=num_channels_up[i],
-                                                  kernel=filter_size_up,
-                                                  pad=pad,
-                                                  upsample_mode=upsample_mode)
-                                          for i in range(len(num_channels_up)-1, -1, -1)])
-        self.skip_connections = nn.ModuleList([SkipConnection(in_size=num_channels_down[i], 
-                                                              out_size=num_channels_skip[i], 
-                                                              kernel=filter_skip_size,
-                                                              pad=pad)
-                                               for i in range(len(num_channels_up))])
+        self.down_sampler = nn.ModuleList([
+            DownSample(
+                in_size=num_input_channels if i == 0 else num_channels_down[i-1], 
+                out_size=num_channels_down[i], kernel=filter_size_down, pad=pad, 
+                downsample_mode=downsample_mode
+            ) for i in range(len(num_channels_down))
+        ])
+        self.up_sampler = nn.ModuleList([
+            UpSample(
+                in_size=num_channels_skip[i] + num_channels_up[i + 1] if i != len(num_channels_down) - 1
+                        else num_channels_up[i],
+                out_size=num_channels_up[i], kernel=filter_size_up, pad=pad, 
+                upsample_mode=upsample_mode
+            ) for i in range(len(num_channels_up)-1, -1, -1)
+        ])
+        self.skip_connections = nn.ModuleList([
+            SkipConnection(
+                in_size=num_channels_down[i], out_size=num_channels_skip[i], 
+                kernel=filter_skip_size, pad=pad
+            ) for i in range(len(num_channels_up))
+        ])
         
         self.last_cnn = conv(num_channels_up[0], num_output_channels, 1, bias=need_bias, pad=pad)
         self.sigmoid = nn.Sigmoid() if need_sigmoid else None
@@ -142,7 +142,7 @@ class SkipArchitecture(nn.Module):
                 # print(self.up_sampler[i])
                 input = self.up_sampler[i].forward(skip[-1])
             else:
-                input = self.up_sampler[i].forward(torch.cat([input,skip[self.n_scales - i - 1]], 1))
+                input = self.up_sampler[i].forward(torch.cat([input, skip[self.n_scales - i - 1]], 1))
 
         output = self.last_cnn(input)
         if self.sigmoid != None:
