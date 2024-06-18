@@ -59,8 +59,8 @@ class DDPM():
             images: The input data
             timesteps: Current forwarding time
         """
-        noise = dip_model(get_noise(32, "noise", (32, 32)).to(images.device).detach()).repeat(batch_size, 1, 1, 1).to(images.device) \
-                if dip_model else torch.randn(images.shape).to(images.device)
+        noise_prior = dip_model(get_noise(32, "noise", (32, 32)).to(images.device).detach()).repeat(batch_size, 1, 1, 1).to(images.device) if dip_model else None
+        gaussian_noise = torch.randn(images.shape).to(images.device)
         self.alphas_hat = self.alphas_hat.to(images.device)
         alpha_hat = self.alphas_hat[timesteps]
         # alphas_sprt = self.alphas_sprt[timesteps].to(images.device)
@@ -70,7 +70,7 @@ class DDPM():
 
         # The calculation of the forward loss function `Lsimple(Θ)`, 
         # which is the equation (14) in the original paper
-        return torch.sqrt(alpha_hat) * images + torch.sqrt(1 - alpha_hat) * noise, noise
+        return torch.sqrt(alpha_hat) * images + torch.sqrt(1 - alpha_hat) * gaussian_noise, noise_prior if noise_prior != None else gaussian_noise
 
     def reverse_diffusion(self, model, noisy_images, timesteps):
         """The reverse function of diffusion probabilistic model.
@@ -110,8 +110,7 @@ class DDPM():
             alpha_hat_prev = self.alphas_hat[timestep - 1].to(device)
             posterior_variance = (1 - alpha_hat_prev) / (1 - alpha_hat) * beta_t
             
-            noise = dip_model(get_noise(32, "noise", (32, 32)).to(image.device).detach()).repeat(batch_size, 1, 1, 1).to(image.device) \
-                    if dip_model else torch.randn(image.shape).to(image.device)
+            noise = torch.randn(image.shape).to(image.device)
 
             variance = torch.sqrt(posterior_variance) * noise if timestep > 0 else 0
 
