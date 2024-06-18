@@ -2,6 +2,8 @@
 
 This project aims to take a deep look into the implementation of accelerating the initialization of Denoising Diffusion Probabilistic Model (DDPM) training process by applying the initial prior strategy of Deep Image Prior (DIP).
 
+To know more about this project (assignment), you could read the git commit messages in this repository, and the `report.pdf` (it is written in English).
+
 ## Development Environment
 
 * OS: Windows 10 Home
